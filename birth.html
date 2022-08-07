@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <!-- 添加 viewport 元标签 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- 修改标题 -->
+    <title>当年公历生日查询</title>
+    <style>
+      body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+        /* 修改 overflow 属性，让页面支持滚动 */
+        overflow: auto;
+        position: relative;
+        box-sizing: border-box; /* 确保尺寸计算准确 */
+        /* 添加移动端适配样式 */
+        padding: 20px;
+      }
+      /* 水波纹样式 */
+      .ripple {
+        position: absolute;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.3);
+        transform: scale(0);
+        animation: rippleEffect 0.6s linear;
+        pointer-events: none;
+        -webkit-animation: rippleEffect 0.6s linear;
+        width: 100px;
+        height: 100px;
+        box-sizing: border-box; /* 确保尺寸计算准确 */
+      }
+
+      @keyframes rippleEffect {
+        to {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+      @-webkit-keyframes rippleEffect {
+        to {
+          -webkit-transform: scale(4);
+          opacity: 0;
+        }
+      }
+      /* 显示生日信息的容器样式 */
+      #birthdayInfo {
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        /* 添加移动端适配样式 */
+        width: 100%;
+        max-width: 400px;
+      }
+      /* 日期选择器容器样式 */
+      #datePickerContainer {
+        margin-bottom: 20px;
+        /* 添加移动端适配样式 */
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 400px;
+      }
+      /* 输入框和按钮样式 */
+      input, button, select {
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+      }
+      button {
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #0056b3;
+      }
+      /* 下雨特效样式 */
+      .rain {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      .drop {
+        position: absolute;
+        background: white;
+        width: 1px;
+        height: 10px;
+        animation: fall linear infinite;
+      }
+
+      @keyframes fall {
+        to {
+          transform: translateY(100vh);
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 下雨特效容器 -->
+    <div class="rain" id="rain"></div>
+    <div id="datePickerContainer">
+      <label for="dateType">选择日期类型:</label>
+      <select id="dateType">
+        <option value="solar">公历</option>
+        <option value="lunar">农历</option>
+      </select>
+      <p id="dateTypeHint" style="text-align: center; margin-bottom: 10px;">请输入公历生日</p>
+      <label for="year">年:</label>
+      <input type="number" id="year" min="1900" max="2100" value="2000">
+      <label for="month">月:</label>
+      <input type="number" id="month" min="1" max="12" value="11">
+      <label for="day">日:</label>
+      <input type="number" id="day" min="1" max="31" value="08">
+      <button id="submitButton">查询</button>
+    </div>
+    <div id="birthdayInfo"></div>
+    <script src="lunar.js"></script>
+    <script>
+      // 页面加载时从 localStorage 读取上次的选择和输入
+      window.addEventListener('load', () => {
+        const lastDateType = localStorage.getItem('lastDateType');
+        const lastYear = localStorage.getItem('lastYear');
+        const lastMonth = localStorage.getItem('lastMonth');
+        const lastDay = localStorage.getItem('lastDay');
+
+        if (lastDateType) {
+          document.getElementById('dateType').value = lastDateType;
+          const dateTypeHint = document.getElementById('dateTypeHint');
+          if (lastDateType === 'lunar') {
+            dateTypeHint.textContent = '请输入农历生日';
+          } else {
+            dateTypeHint.textContent = '请输入公历生日';
+          }
+        }
+
+        if (lastYear) {
+          document.getElementById('year').value = lastYear;
+        }
+        if (lastMonth) {
+          document.getElementById('month').value = lastMonth;
+        }
+        if (lastDay) {
+          document.getElementById('day').value = lastDay;
+        }
+      });
+
+      // 创建水波纹的函数
+      function createRipple(e) {
+        const ripple = document.createElement('div');
+        ripple.classList.add('ripple');
+        const rect = document.body.getBoundingClientRect();
+        ripple.style.left = `${e.clientX - rect.left - 50}px`;
+        ripple.style.top = `${e.clientY - rect.top - 50}px`;
+        document.body.appendChild(ripple);
+
+        setTimeout(() => {
+          ripple.remove();
+        }, 600);
+      }
+
+      // 为 body 添加鼠标按下事件监听器
+      document.body.addEventListener('mousedown', createRipple);
+
+      // 根据选择的日期类型更新提示文字
+      const dateTypeSelect = document.getElementById('dateType');
+      const dateTypeHint = document.getElementById('dateTypeHint');
+      dateTypeSelect.addEventListener('change', () => {
+        if (dateTypeSelect.value === 'lunar') {
+          dateTypeHint.textContent = '请输入农历生日';
+        } else {
+          dateTypeHint.textContent = '请输入公历生日';
+        }
+      });
+
+      // 显示生日信息
+      function displayBirthdayInfo(year, month, day, isLunar) {
+        let lunar;
+        const currentYear = new Date().getFullYear();
+        const infoDiv = document.getElementById('birthdayInfo');
+        
+        // 统一转成农历
+        if (isLunar) {
+          lunar = Lunar.fromYmd(year, month, day);
+        } else {
+          lunar = Solar.fromYmd(year, month, day).getLunar(); 
+        }
+        
+        const info = `
+          农历生日: <br>${lunar.toFullString()}<br>
+          公历生日: <br>${lunar.getSolar().toFullString()}<br>
+          当年公历生日: <br>${ (isLunar ? Lunar.fromYmd(currentYear, month, day) : Lunar.fromYmd(currentYear, lunar.getMonth(), lunar.getDay())).getSolar().toFullString()}
+        `;
+        
+        infoDiv.innerHTML = info;
+      }
+
+      // 为提交按钮添加点击事件监听器
+      const submitButton = document.getElementById('submitButton');
+      submitButton.addEventListener('click', () => {
+        const year = parseInt(document.getElementById('year').value);
+        const month = parseInt(document.getElementById('month').value);
+        const day = parseInt(document.getElementById('day').value);
+        const isLunar = document.getElementById('dateType').value === 'lunar';
+
+        // 将用户的选择和输入保存到 localStorage
+        localStorage.setItem('lastDateType', document.getElementById('dateType').value);
+        localStorage.setItem('lastYear', year);
+        localStorage.setItem('lastMonth', month);
+        localStorage.setItem('lastDay', day);
+
+        displayBirthdayInfo(year, month, day, isLunar);
+      });
+
+      // 下雨特效逻辑
+      function createRain() {
+        const rainContainer = document.getElementById('rain');
+        const numDrops = 200;
+
+        for (let i = 0; i < numDrops; i++) {
+          const drop = document.createElement('div');
+          drop.classList.add('drop');
+          drop.style.left = `${Math.random() * 100}vw`;
+          drop.style.animationDuration = `${Math.random() * 2 + 1}s`;
+          drop.style.animationDelay = `${Math.random() * 2}s`;
+          rainContainer.appendChild(drop);
+        }
+      }
+
+      // 页面加载完成后创建下雨特效
+      window.addEventListener('load', () => {
+        createRain();
+      });
+    </script>
+  </body>
+</html>
